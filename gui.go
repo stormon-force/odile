@@ -4,6 +4,7 @@ import (
 	"log"
 	"flag"
 	"strings"
+	"time"
 	"os"
 
 	"fyne.io/fyne/v2"
@@ -18,7 +19,7 @@ import (
 )
 
 const (
-	VERSION = "1.0.0"
+	VERSION = "1.0.1"
 )
 
 // TO DO : Better error checking
@@ -222,7 +223,7 @@ func (g *OdileGUI) Init(){
 	)
 }
 
-func Start(debugOption bool) {
+func Run(debugOption bool) {
 	// Create received files directory
 	path := "./output"
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -243,10 +244,34 @@ func Start(debugOption bool) {
 	Gui.Window.ShowAndRun()
 }
 
+func SetLogOutput() {
+	path := "./logs"
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+	    os.Mkdir(path, os.ModeDir)
+	}
+
+	timestamp := time.Now().Format("2006-01-02-15-04-05")
+	logfileName := "./logs/odile_" + timestamp + ".txt"
+	
+	// Create if not there
+	f, err := os.Create(logfileName)
+	// Why do we need OpenFile? Here: https://stackoverflow.com/questions/19965795/how-to-write-log-to-file
+	file, err := os.OpenFile(logfileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+	    log.Fatalf("error opening file: %v", err)
+	}
+	log.SetOutput(file)
+	f.Close()
+}
+
 func main() {
-	log.Println("Starting Odile", VERSION)
 	debugOption := flag.Bool("debug", false, "Run in debug mode")
 	flag.Parse()
 
-	Start(*debugOption)
+	//if(*debugOption){
+	SetLogOutput()
+	//}
+	log.Println("Starting Odile", VERSION)
+
+	Run(*debugOption)
 }
