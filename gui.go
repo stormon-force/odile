@@ -24,11 +24,33 @@ const (
 )
 
 // TO DO : Better error checking
-// TO DO : Multiple files, include folders
+// TO DO : include folders as selection process
+
+// Utility functions
+func CombineWords(word1 string, word2 string, word3 string) string {
+	if(word1 == "" || word2 == "" || word3 == "") {
+		return ""
+	}
+	return strings.Join(
+		[]string{word1, word2, word3},
+		"-",
+	)
+}
+
+func FormatFileChoice(fileChoice fyne.URIReadCloser) string {
+	// TO DO : This probably won't work for non UTF-8 or UNIX filepaths
+	// Remove 'file://' portion
+	return fileChoice.URI().String()[7:]
+}
+
+// Wrap croc logic
+type CrocWrapper struct {
+	Client *croc.Client // Current croc client
+}
 
 // Mimic func send(c *cli.Context) located in github.com/schollz/croc/v8/src/croc
 // Setting defaults for mostly everything
-func Send(paths []string) (secret string, err error) {
+func (cw *CrocWrapper) Send(paths []string) (secret string, err error) {
 	//setDebugLevel(c)
 	//comm.Socks5Proxy = c.String("socks5")
 	crocOptions := croc.Options{
@@ -60,14 +82,14 @@ func Send(paths []string) (secret string, err error) {
 		crocOptions.SharedSecret = utils.GetRandomName()
 	}
 
-	cr, err := croc.New(crocOptions)
+	cw.Client, err = croc.New(crocOptions)
 	if err != nil {
 		return
 	}
 
 	// File paths will already be choosen by the GUI portion
 	// Run in seperate go routine
-	go cr.Send(croc.TransferOptions{
+	go cw.Client.Send(croc.TransferOptions{
 		PathToFiles:      paths,
 		KeepPathInRemote: false,
 	})
@@ -77,7 +99,7 @@ func Send(paths []string) (secret string, err error) {
 
 // Mimic func receive(c *cli.Context) located in github.com/schollz/croc/v8/src/croc
 // Setting defaults for mostly everything
-func Recv(secret string) (err error) {
+func (cw *CrocWrapper) Recv(secret string) (err error) {
 	//comm.Socks5Proxy = c.String("socks5")
 	crocOptions := croc.Options{
 		SharedSecret:  secret, // passed in from GUI
@@ -98,34 +120,20 @@ func Recv(secret string) (err error) {
 		crocOptions.RelayAddress = ""
 	}
 
-	cr, err := croc.New(crocOptions)
+	cw.Client, err = croc.New(crocOptions)
 	if err != nil {
 		return
 	}
 
-	err = cr.Receive()
+	err = cw.Client.Receive()
 	return
-}
-
-func CombineWords(word1 string, word2 string, word3 string) string {
-	if(word1 == "" || word2 == "" || word3 == "") {
-		return ""
-	}
-	return strings.Join(
-		[]string{word1, word2, word3},
-		"-",
-	)
-}
-
-func FormatFileChoice(fileChoice fyne.URIReadCloser) string {
-	// TO DO : This probably won't work for non UTF-8 or UNIX filepaths
-	// Remove 'file://' portion
-	return fileChoice.URI().String()[7:]
 }
 
 type OdileGUI struct {
 	// Application member variables
-	// Currently only supporting one file
+	// Handle logic for croc operations (send, receive)
+	Croc 	*CrocWrapper
+	// Support multiple files
 	FileList []string 
 	// Where files will be placed
 	OutputPath string 
@@ -181,8 +189,10 @@ func (g *OdileGUI) RefreshFileList(pathList []string){
 	g.FileChoiceLabel.SetText(pathString)
 }
 
-// TO DO : Move action logic (send, receive, choose file) out of GUI declaration
+// TO DO : Move action logic (send, receive, choose file) out of GUI declaration?
 func (g *OdileGUI) Init(){
+	g.Croc = &CrocWrapper{}
+
 	g.FileList = []string{}
 
 	g.App = app.New()
@@ -215,7 +225,7 @@ func (g *OdileGUI) Init(){
 
 	g.SendButton = widget.NewButton("Send", func() {
 		log.Println(g.FileList)
-		secret, err := Send(g.FileList)
+		secret, err := g.Croc.Send(g.FileList)
 		log.Println("Send Function:", secret, err)
 		g.SendPasswordLabel.SetText(secret)
 	})
@@ -235,7 +245,7 @@ func (g *OdileGUI) Init(){
 		if err = os.Chdir(g.OutputPath); err != nil {
 			log.Panicln("Failed to change to proper directory, ending program", err)
 		}
-		err = Recv(secret)
+		err = g.Croc.Recv(secret)
 		log.Println("Receive Function:", secret, err)
 	})
 
