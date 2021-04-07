@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 	"os"
+	"fmt"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -19,7 +20,7 @@ import (
 )
 
 const (
-	VERSION = "1.0.1"
+	VERSION = "1.0.2"
 )
 
 // TO DO : Better error checking
@@ -155,9 +156,34 @@ type OdileGUI struct {
 	Content *fyne.Container
 }
 
+func (g *OdileGUI) AddPathList(path string, pathList []string) error{
+	pathPresent := false
+	for _, p := range pathList{
+		if p == path{
+			pathPresent = true
+		}
+	}
+	if !pathPresent{
+		g.FileList = append(g.FileList, path)
+		log.Println("Added %v to file path list", path)
+	} else {
+		return fmt.Errorf("Could not add %v, already in list", path)
+	}
+
+	return nil
+}
+
+func (g *OdileGUI) RefreshFileList(pathList []string){
+	pathString := strings.Join(
+		pathList,
+		"\n",
+	)
+	g.FileChoiceLabel.SetText(pathString)
+}
+
 // TO DO : Move action logic (send, receive, choose file) out of GUI declaration
 func (g *OdileGUI) Init(){
-	g.FileList = make([]string, 1)
+	g.FileList = []string{}
 
 	g.App = app.New()
 	g.Window = g.App.NewWindow("croc-Odile")
@@ -167,9 +193,14 @@ func (g *OdileGUI) Init(){
 			log.Println("File selection result", fileChoice, err)
 			if(fileChoice != nil){
 				log.Println("\tFile:", fileChoice.URI())
-				g.FileList[0] = FormatFileChoice(fileChoice)
+				errA := g.AddPathList(FormatFileChoice(fileChoice), g.FileList)
+				if(errA != nil){
+					log.Println(errA)
+				} else {
+					g.RefreshFileList(g.FileList)
+				}
+				log.Println(g.FileList)
 			}
-			g.FileChoiceLabel.SetText(g.FileList[0])
 		},
 		g.Window,
 	)
@@ -269,7 +300,7 @@ func main() {
 	flag.Parse()
 
 	//if(*debugOption){
-	SetLogOutput()
+	//SetLogOutput()
 	//}
 	log.Println("Starting Odile", VERSION)
 
