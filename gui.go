@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	VERSION = "1.0.2"
+	VERSION = "0.1.0"
 )
 
 // TO DO : Better error checking
@@ -46,6 +46,7 @@ func FormatFileChoice(fileChoice fyne.URIReadCloser) string {
 // Wrap croc logic
 type CrocWrapper struct {
 	Client *croc.Client // Current croc client
+	Transmitting bool 	// Transmission active
 }
 
 // Mimic func send(c *cli.Context) located in github.com/schollz/croc/v8/src/croc
@@ -87,6 +88,9 @@ func (cw *CrocWrapper) Send(paths []string) (secret string, err error) {
 		return
 	}
 
+	// Before starting alert the progess bar graphic
+	cw.Transmitting = true
+
 	// File paths will already be choosen by the GUI portion
 	// Run in seperate go routine
 	go cw.Client.Send(croc.TransferOptions{
@@ -125,6 +129,9 @@ func (cw *CrocWrapper) Recv(secret string) (err error) {
 		return
 	}
 
+	// Before starting alert the progess bar graphic
+	cw.Transmitting = true
+
 	err = cw.Client.Receive()
 	return
 }
@@ -153,6 +160,9 @@ type OdileGUI struct {
 	Input1 	*widget.Entry
 	Input2 	*widget.Entry
 	Input3 	*widget.Entry
+
+	// Progress Bar
+	ProgressBar *widget.ProgressBar
 
 	// Display password when pressing send
 	SendPasswordLabel *widget.Label
@@ -189,6 +199,34 @@ func (g *OdileGUI) RefreshFileList(pathList []string){
 	g.FileChoiceLabel.SetText(pathString)
 }
 
+func (g *OdileGUI) RunProgressBar(){
+	// Spin locks ahoy!	
+	// Wait until send is ready
+	for !g.Croc.Transmitting{
+	}
+	log.Println("Croc client is ready, waiting for file info transfer")
+	// Spin lock until other side is ready
+	for !g.Croc.Client.Step2FileInfoTransfered{
+	}
+	log.Println("File info transfer is ready")
+
+	var TotalSize int64
+	TotalSize = 0
+	for _, file := range g.Croc.Client.FilesToTransfer{
+		TotalSize += file.Size
+	}
+	log.Printf("Total size of all file: %v\n", TotalSize)
+
+	for !g.Croc.Client.SuccessfulTransfer{
+		g.ProgressBar.SetValue(float64(g.Croc.Client.TotalSent) / float64(TotalSize))
+		time.Sleep(time.Millisecond * 10)
+	}
+
+	g.ProgressBar.SetValue(1.0)
+	time.Sleep(time.Millisecond * 1000)
+	g.ProgressBar.SetValue(0.0)
+}
+
 // TO DO : Move action logic (send, receive, choose file) out of GUI declaration?
 func (g *OdileGUI) Init(){
 	g.Croc = &CrocWrapper{}
@@ -197,6 +235,8 @@ func (g *OdileGUI) Init(){
 
 	g.App = app.New()
 	g.Window = g.App.NewWindow("croc-Odile")
+
+	g.ProgressBar = widget.NewProgressBar()
 
 	g.FileSelect = dialog.NewFileOpen(
 		func (fileChoice fyne.URIReadCloser, err error) {
@@ -225,7 +265,9 @@ func (g *OdileGUI) Init(){
 
 	g.SendButton = widget.NewButton("Send", func() {
 		log.Println(g.FileList)
+		go g.RunProgressBar()
 		secret, err := g.Croc.Send(g.FileList)
+
 		log.Println("Send Function:", secret, err)
 		g.SendPasswordLabel.SetText(secret)
 	})
@@ -245,6 +287,7 @@ func (g *OdileGUI) Init(){
 		if err = os.Chdir(g.OutputPath); err != nil {
 			log.Panicln("Failed to change to proper directory, ending program", err)
 		}
+		go g.RunProgressBar()
 		err = g.Croc.Recv(secret)
 		log.Println("Receive Function:", secret, err)
 	})
@@ -261,6 +304,7 @@ func (g *OdileGUI) Init(){
 		g.Input1,
 		g.Input2,
 		g.Input3,
+		g.ProgressBar,
 	)
 }
 
