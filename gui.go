@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	VERSION = "0.1.2"
+	VERSION = "0.1.3"
 )
 
 // TO DO : Better error checking
@@ -191,12 +191,21 @@ func (g *OdileGUI) AddPathList(path string, pathList []string) error{
 	return nil
 }
 
+// DEPRECATE
 func (g *OdileGUI) RefreshFileList(pathList []string){
 	pathString := strings.Join(
 		pathList,
 		"\n",
 	)
 	g.FileChoiceLabel.SetText(pathString)
+}
+
+func (g *OdileGUI) AddDisplayFileList(filename string){
+	NewText := g.FileChoiceLabel.Text
+
+	NewText += filename + "\n"
+
+	g.FileChoiceLabel.SetText(NewText)
 }
 
 func (g *OdileGUI) ResetFields(){
@@ -275,7 +284,7 @@ func (g *OdileGUI) Init(){
 				if(errA != nil){
 					log.Println(errA)
 				} else {
-					g.RefreshFileList(g.FileList)
+					g.AddDisplayFileList(fileChoice.URI().Name())
 				}
 				log.Println(g.FileList)
 			}
