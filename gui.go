@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	VERSION = "0.1.3"
+	VERSION = "0.1.4"
 )
 
 // TO DO : Better error checking
@@ -168,6 +168,9 @@ type OdileGUI struct {
 	SendPasswordLabel *widget.Label
 	FileChoiceLabel *widget.Label
 
+	// Version
+	VersionLabel *widget.Label
+
 	// GUI Application
 	App 	fyne.App
 	Window 	fyne.Window
@@ -293,6 +296,7 @@ func (g *OdileGUI) Init(){
 	)
 
 	g.FileOpenButton = widget.NewButton("Choose File", func() {
+		log.Println("File Selection button pressed")
 		g.FileSelect.Show()
 	})
 
@@ -301,6 +305,7 @@ func (g *OdileGUI) Init(){
 	g.Input3 = widget.NewEntry()
 
 	g.SendButton = widget.NewButton("Send", func() {
+		log.Println("Send button pressed")
 		log.Println(g.FileList)
 		go g.RunProgressBar()
 		secret, err := g.Croc.Send(g.FileList)
@@ -310,11 +315,13 @@ func (g *OdileGUI) Init(){
 	})
 
 	g.RecvButton = widget.NewButton("Receive", func() {
+		log.Println("Receive button pressed")
 		secret := CombineWords(
 			g.Input1.Text,
 			g.Input2.Text,
 			g.Input3.Text,
 		)
+		log.Println("Secret is ", secret)
 		// A word was incorrectly formatted
 		if(secret == ""){ 
 			log.Println("Error in one of input words, not receiving")
@@ -328,6 +335,7 @@ func (g *OdileGUI) Init(){
 
 	g.SendPasswordLabel = widget.NewLabel("")
 	g.FileChoiceLabel = widget.NewLabel("")
+	g.VersionLabel = widget.NewLabel(VERSION)
 
 	g.Content = container.NewVBox(
 		g.FileOpenButton,
@@ -339,6 +347,7 @@ func (g *OdileGUI) Init(){
 		g.Input2,
 		g.Input3,
 		g.ProgressBar,
+		g.VersionLabel,
 	)
 }
 
@@ -391,9 +400,9 @@ func main() {
 	debugOption := flag.Bool("debug", false, "Run in debug mode")
 	flag.Parse()
 
-	//if(*debugOption){
-	//	SetLogOutput()
-	//}
+	if(!*debugOption){
+		SetLogOutput()
+	}
 	log.Println("Starting Odile", VERSION)
 
 	Run(*debugOption)

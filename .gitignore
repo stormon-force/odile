@@ -3,3 +3,5 @@ ignore/
 output/
 logs/
 *.zip
+*.bat
+releases/*
