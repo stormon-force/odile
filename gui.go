@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	VERSION = "0.1.1"
+	VERSION = "0.1.2"
 )
 
 // TO DO : Better error checking
@@ -88,7 +88,7 @@ func (cw *CrocWrapper) Send(paths []string) (secret string, err error) {
 		return
 	}
 
-	// Before starting alert the progess bar graphic
+	// Before starting send alert the progess bar graphic
 	cw.Transmitting = true
 
 	// File paths will already be choosen by the GUI portion
@@ -129,7 +129,7 @@ func (cw *CrocWrapper) Recv(secret string) (err error) {
 		return
 	}
 
-	// Before starting alert the progess bar graphic
+	// Before starting recv alert the progess bar graphic
 	cw.Transmitting = true
 
 	err = cw.Client.Receive()
@@ -199,9 +199,24 @@ func (g *OdileGUI) RefreshFileList(pathList []string){
 	g.FileChoiceLabel.SetText(pathString)
 }
 
+func (g *OdileGUI) ResetFields(){
+	log.Println("ResetFields")
+	g.FileList = []string{}
+	g.RefreshFileList(g.FileList)
+
+	g.Input1.SetText("")
+	g.Input2.SetText("")
+	g.Input3.SetText("")
+
+	g.SendPasswordLabel.SetText("")
+}
+
 func (g *OdileGUI) RunProgressBar(){
 	// Show
+	log.Println("g.ProgressBar.Show()")
 	g.ProgressBar.Show()
+	log.Println("g.ProgressBar.SetValue(0.0)")
+	g.ProgressBar.SetValue(0.0)
 
 	// Spin locks ahoy!	
 	// Wait until send is ready
@@ -225,13 +240,17 @@ func (g *OdileGUI) RunProgressBar(){
 		time.Sleep(time.Millisecond * 10)
 	}
 
-	// Reset file list
-	g.FileList = []string{}
-	g.RefreshFileList(g.FileList)
+	// Reset for next transmission
+	g.Croc.Transmitting = false
+
+	// After success
+	g.ResetFields()
 
 	// Keep 100% for a second, then hide again
+	log.Println("g.ProgressBar.SetValue(1.0)")
 	g.ProgressBar.SetValue(1.0)
 	time.Sleep(time.Millisecond * 1000)
+	log.Println("g.ProgressBar.Hide(")
 	g.ProgressBar.Hide()
 }
 
