@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	VERSION = "0.1.0"
+	VERSION = "0.1.1"
 )
 
 // TO DO : Better error checking
@@ -200,6 +200,9 @@ func (g *OdileGUI) RefreshFileList(pathList []string){
 }
 
 func (g *OdileGUI) RunProgressBar(){
+	// Show
+	g.ProgressBar.Show()
+
 	// Spin locks ahoy!	
 	// Wait until send is ready
 	for !g.Croc.Transmitting{
@@ -222,9 +225,14 @@ func (g *OdileGUI) RunProgressBar(){
 		time.Sleep(time.Millisecond * 10)
 	}
 
+	// Reset file list
+	g.FileList = []string{}
+	g.RefreshFileList(g.FileList)
+
+	// Keep 100% for a second, then hide again
 	g.ProgressBar.SetValue(1.0)
 	time.Sleep(time.Millisecond * 1000)
-	g.ProgressBar.SetValue(0.0)
+	g.ProgressBar.Hide()
 }
 
 // TO DO : Move action logic (send, receive, choose file) out of GUI declaration?
@@ -237,6 +245,7 @@ func (g *OdileGUI) Init(){
 	g.Window = g.App.NewWindow("croc-Odile")
 
 	g.ProgressBar = widget.NewProgressBar()
+	g.ProgressBar.Hide()
 
 	g.FileSelect = dialog.NewFileOpen(
 		func (fileChoice fyne.URIReadCloser, err error) {
