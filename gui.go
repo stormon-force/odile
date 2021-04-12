@@ -292,12 +292,9 @@ func (g *OdileGUI) Init(){
 			log.Println("Error in one of input words, not receiving")
 			return
 		}
-		var err error
-		if err = os.Chdir(g.OutputPath); err != nil {
-			log.Panicln("Failed to change to proper directory, ending program", err)
-		}
+		// Start GUI sections that update 'real time'
 		go g.RunProgressBar()
-		err = g.Croc.Recv(secret)
+		err := g.Croc.Recv(secret)
 		log.Println("Receive Function:", secret, err)
 	})
 
@@ -318,10 +315,14 @@ func (g *OdileGUI) Init(){
 }
 
 func Run(debugOption bool) {
+	var err error
 	// Create received files directory
 	path := "./output"
-	if _, err := os.Stat(path); os.IsNotExist(err) {
+	if _, err = os.Stat(path); os.IsNotExist(err) {
 	    os.Mkdir(path, os.ModeDir)
+	}
+	if err = os.Chdir(path); err != nil {
+		log.Panicln("Failed to change to proper directory, ending program", err)
 	}
 
 	// Create GUI 
@@ -363,7 +364,7 @@ func main() {
 	flag.Parse()
 
 	//if(*debugOption){
-	//SetLogOutput()
+	//	SetLogOutput()
 	//}
 	log.Println("Starting Odile", VERSION)
 
