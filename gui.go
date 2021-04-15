@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	VERSION = "0.1.4"
+	VERSION = "1.0.0"
 )
 
 // TO DO : Better error checking
@@ -232,6 +232,7 @@ func (g *OdileGUI) RunProgressBar(){
 
 	// Spin locks ahoy!	
 	// Wait until send is ready
+	// TO DO : This could be a condition variable that waits
 	for !g.Croc.Transmitting{
 	}
 	log.Println("Croc client is ready, waiting for file info transfer")
