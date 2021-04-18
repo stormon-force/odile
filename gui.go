@@ -10,9 +10,11 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/container"
+
+	"github.com/harry1453/go-common-file-dialog/cfd"
+	//"github.com/harry1453/go-common-file-dialog/cfdutil" // Will use this for folder select dialog
 
 	"github.com/schollz/croc/v8/src/croc"
 	"github.com/schollz/croc/v8/src/models"
@@ -20,7 +22,7 @@ import (
 )
 
 const (
-	VERSION = "1.0.0"
+	VERSION = "1.1.0"
 )
 
 // TO DO : Better error checking
@@ -88,7 +90,7 @@ func (cw *CrocWrapper) Send(paths []string) (secret string, err error) {
 		return
 	}
 
-	// Before starting send alert the progess bar graphic
+	// Before starting send, alert the progess bar graphic
 	cw.Transmitting = true
 
 	// File paths will already be choosen by the GUI portion
@@ -129,7 +131,7 @@ func (cw *CrocWrapper) Recv(secret string) (err error) {
 		return
 	}
 
-	// Before starting recv alert the progess bar graphic
+	// Before starting recv, alert the progess bar graphic
 	cw.Transmitting = true
 
 	err = cw.Client.Receive()
@@ -146,9 +148,6 @@ type OdileGUI struct {
 	OutputPath string 
 
 	// GUI member variables
-	// File selection window
-	FileSelect  	*dialog.FileDialog
-
 	// File selection window button
 	FileOpenButton 	*widget.Button
 
@@ -177,7 +176,21 @@ type OdileGUI struct {
 	Content *fyne.Container
 }
 
-func (g *OdileGUI) AddPathList(path string, pathList []string) error{
+func (g *OdileGUI) OpenWindowsFileSelection() (error, []string) {
+	openMultiDialog, err := cfd.NewOpenMultipleFilesDialog(cfd.DialogConfig{
+		Title: "Select File(s)",
+	})
+	if err != nil {
+		return err, nil
+	}
+	if err = openMultiDialog.Show(); err != nil {
+		return err, nil
+	}
+	results, err := openMultiDialog.GetResults()
+	return err, results
+}
+
+func (g *OdileGUI) AddPathList(path string, pathList []string) error {
 	pathPresent := false
 	for _, p := range pathList{
 		if p == path{
@@ -186,7 +199,7 @@ func (g *OdileGUI) AddPathList(path string, pathList []string) error{
 	}
 	if !pathPresent{
 		g.FileList = append(g.FileList, path)
-		log.Println("Added %v to file path list", path)
+		log.Printf("Added %v to file path list\n", path)
 	} else {
 		return fmt.Errorf("Could not add %v, already in list", path)
 	}
@@ -194,7 +207,6 @@ func (g *OdileGUI) AddPathList(path string, pathList []string) error{
 	return nil
 }
 
-// DEPRECATE
 func (g *OdileGUI) RefreshFileList(pathList []string){
 	pathString := strings.Join(
 		pathList,
@@ -279,26 +291,22 @@ func (g *OdileGUI) Init(){
 	g.ProgressBar = widget.NewProgressBar()
 	g.ProgressBar.Hide()
 
-	g.FileSelect = dialog.NewFileOpen(
-		func (fileChoice fyne.URIReadCloser, err error) {
-			log.Println("File selection result", fileChoice, err)
-			if(fileChoice != nil){
-				log.Println("\tFile:", fileChoice.URI())
-				errA := g.AddPathList(FormatFileChoice(fileChoice), g.FileList)
+	g.FileOpenButton = widget.NewButton("Choose File", func() {
+		log.Println("File Selection button pressed")
+		err, results := g.OpenWindowsFileSelection()
+		if(err == nil) {
+			for _, filePath := range results {
+				errA := g.AddPathList(filePath, g.FileList)
 				if(errA != nil){
 					log.Println(errA)
 				} else {
-					g.AddDisplayFileList(fileChoice.URI().Name())
+					g.AddDisplayFileList(filePath)
 				}
-				log.Println(g.FileList)
+				log.Println(g.FileList)		
 			}
-		},
-		g.Window,
-	)
-
-	g.FileOpenButton = widget.NewButton("Choose File", func() {
-		log.Println("File Selection button pressed")
-		g.FileSelect.Show()
+		} else {
+			log.Println("File selection cancelled", err)
+		}
 	})
 
 	g.Input1 = widget.NewEntry()
