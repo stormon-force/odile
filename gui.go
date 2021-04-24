@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	VERSION = "1.1.3"
+	VERSION = "1.1.4"
 )
 
 // TO DO : Better error checking
@@ -169,6 +169,9 @@ type OdileGUI struct {
 	// Display password when pressing send
 	SendPasswordLabel *widget.Label
 	FileChoiceLabel *widget.Label
+
+	// Console
+	ConsoleLabel *widget.Label
 
 	// Version
 	VersionLabel *widget.Label
@@ -335,16 +338,22 @@ func (g *OdileGUI) Init(){
 
 	g.SendButton = widget.NewButton("Send", func() {
 		log.Println("Send button pressed")
+		g.ConsoleLabel.SetText("")
 		log.Println(g.FileList)
 		go g.RunProgressBar()
 		secret, err := g.Croc.Send(g.FileList)
-
+		if(err != nil){
+			fmt.Printf("Send Error %v\n", err)
+			//g.ResetFields()
+			g.ConsoleLabel.SetText("Error, consider resetting with \'Send\'")
+		}
 		log.Println("Send Function:", secret, err)
 		g.SendPasswordLabel.SetText(secret)
 	})
 
 	g.RecvButton = widget.NewButton("Receive", func() {
 		log.Println("Receive button pressed")
+		g.ConsoleLabel.SetText("")
 		secret := CombineWords(
 			g.Input0.Text,
 			g.Input1.Text,
@@ -361,11 +370,17 @@ func (g *OdileGUI) Init(){
 		go g.RunProgressBar()
 		err := g.Croc.Recv(secret)
 		log.Println("Receive Function:", secret, err)
+		if(err != nil){
+			fmt.Printf("Receive Error %v\nResetting secret fields\n", err)
+			g.ResetFields()
+			g.ConsoleLabel.SetText("Error, retry")
+		}
 	})
 
 	g.SendPasswordLabel = widget.NewLabel("")
 	g.FileChoiceLabel = widget.NewLabel("")
 	g.VersionLabel = widget.NewLabel(VERSION)
+	g.ConsoleLabel = widget.NewLabel("")
 
 	g.Content = container.NewVBox(
 		g.FileOpenButton,
@@ -378,6 +393,7 @@ func (g *OdileGUI) Init(){
 		g.Input2,
 		g.Input3,
 		g.ProgressBar,
+		g.ConsoleLabel,
 		g.VersionLabel,
 	)
 }
