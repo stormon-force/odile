@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	VERSION = "1.1.1"
+	VERSION = "1.1.2"
 )
 
 // TO DO : Better error checking
@@ -39,10 +39,10 @@ func CombineWords(word0 string, word1 string, word2 string, word3 string) string
 	)
 }
 
-func FormatFileChoice(fileChoice fyne.URIReadCloser) string {
-	// TO DO : This probably won't work for non UTF-8 or UNIX filepaths
-	// Remove 'file://' portion
-	return fileChoice.URI().String()[7:]
+func FormatFileChoice(fileChoice string) string {
+	stringSplit := strings.Split(fileChoice, "\\")
+	fmt.Println(stringSplit)
+	return stringSplit[len(stringSplit)-1]
 }
 
 // Wrap croc logic
@@ -220,8 +220,7 @@ func (g *OdileGUI) RefreshFileList(pathList []string){
 
 func (g *OdileGUI) AddDisplayFileList(filename string){
 	NewText := g.FileChoiceLabel.Text
-
-	NewText += filename + "\n"
+	NewText += FormatFileChoice(filename) + "\n"
 
 	g.FileChoiceLabel.SetText(NewText)
 }
@@ -279,7 +278,7 @@ func (g *OdileGUI) RunProgressBar(){
 	log.Println("g.ProgressBar.SetValue(1.0)")
 	g.ProgressBar.SetValue(1.0)
 	time.Sleep(time.Millisecond * 1000)
-	log.Println("g.ProgressBar.Hide(")
+	log.Println("g.ProgressBar.Hide()")
 	g.ProgressBar.Hide()
 }
 
