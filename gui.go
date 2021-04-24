@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	VERSION = "1.1.2"
+	VERSION = "1.1.3"
 )
 
 // TO DO : Better error checking
@@ -256,16 +256,32 @@ func (g *OdileGUI) RunProgressBar(){
 	}
 	log.Println("File info transfer is ready")
 
-	var TotalSize int64
+	var TotalSize, ActualTotalSent, PrevTotalSent int64
 	TotalSize = 0
 	for _, file := range g.Croc.Client.FilesToTransfer{
 		TotalSize += file.Size
 	}
 	log.Printf("Total size of all file: %v\n", TotalSize)
 
+	ActualTotalSent = 0
+	PrevTotalSent = 0
 	for !g.Croc.Client.SuccessfulTransfer{
-		g.ProgressBar.SetValue(float64(g.Croc.Client.TotalSent) / float64(TotalSize))
-		time.Sleep(time.Millisecond * 10)
+		// g.Croc.Client.TotalSent now 'resets' for every new file sent
+		// So don't increment if we are in a 'reset' phase, AKA PrevTotalSent > g.Croc.Client.TotalSent
+		/* Example
+		Total Size 10, with 2 files (4 + 6)	
+							   *
+		TotalSent: 0 1 2 3 4 0 1 2 3 4 5 6
+		PrevSent : - 0 1 2 3 4 0 1 2 3 4 5
+		Actual   : 0 1 2 3 4 4 5 6 7 8 9 10
+		The column with '*'' would add a negative, so we don't add there
+		//*/
+		if(PrevTotalSent < g.Croc.Client.TotalSent){
+			ActualTotalSent += (g.Croc.Client.TotalSent - PrevTotalSent)
+		}
+		g.ProgressBar.SetValue(float64(ActualTotalSent) / float64(TotalSize))
+		PrevTotalSent = g.Croc.Client.TotalSent
+		time.Sleep(time.Millisecond * 50)
 	}
 
 	// Reset for next transmission
