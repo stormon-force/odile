@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	VERSION = "1.1.4"
+	VERSION = "1.2.0"
 )
 
 // TO DO : Better error checking
@@ -345,7 +345,7 @@ func (g *OdileGUI) Init(){
 		if(err != nil){
 			fmt.Printf("Send Error %v\n", err)
 			//g.ResetFields()
-			g.ConsoleLabel.SetText("Error, consider resetting with \'Send\'")
+			g.ConsoleLabel.SetText("Error, consider resetting with \"Send\"")
 		}
 		log.Println("Send Function:", secret, err)
 		g.SendPasswordLabel.SetText(secret)
