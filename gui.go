@@ -16,25 +16,25 @@ import (
 	"github.com/harry1453/go-common-file-dialog/cfd"
 	//"github.com/harry1453/go-common-file-dialog/cfdutil" // Will use this for folder select dialog
 
-	"github.com/schollz/croc/v8/src/croc"
-	"github.com/schollz/croc/v8/src/models"
-	"github.com/schollz/croc/v8/src/utils"
+	"github.com/schollz/croc/v9/src/croc"
+	"github.com/schollz/croc/v9/src/models"
+	"github.com/schollz/croc/v9/src/utils"
 )
 
 const (
-	VERSION = "1.1.0"
+	VERSION = "1.1.1"
 )
 
 // TO DO : Better error checking
 // TO DO : include folders as selection process
 
 // Utility functions
-func CombineWords(word1 string, word2 string, word3 string) string {
-	if(word1 == "" || word2 == "" || word3 == "") {
+func CombineWords(word0 string, word1 string, word2 string, word3 string) string {
+	if(word0 == "" || word1 == "" || word2 == "" || word3 == "") {
 		return ""
 	}
 	return strings.Join(
-		[]string{word1, word2, word3},
+		[]string{word0, word1, word2, word3},
 		"-",
 	)
 }
@@ -73,6 +73,7 @@ func (cw *CrocWrapper) Send(paths []string) (secret string, err error) {
 		RelayPassword:  models.DEFAULT_PASSPHRASE,
 		//SendingText:    c.String("text") != "",
 		//NoCompress:     c.Bool("no-compress"),
+		Curve:			"siec", // new default value needed, default encryption curve
 	}
 	if crocOptions.RelayAddress != models.DEFAULT_RELAY {
 		crocOptions.RelayAddress6 = ""
@@ -119,6 +120,7 @@ func (cw *CrocWrapper) Recv(secret string) (err error) {
 		RelayPassword:  models.DEFAULT_PASSPHRASE,
 		//OnlyLocal:     c.Bool("local"),
 		//IP:            c.String("ip"),
+		Curve:			"siec", // new default value needed, default encryption curve
 	}
 	if crocOptions.RelayAddress != models.DEFAULT_RELAY {
 		crocOptions.RelayAddress6 = ""
@@ -156,6 +158,7 @@ type OdileGUI struct {
 	RecvButton 	*widget.Button
 
 	// Password for receive
+	Input0 	*widget.Entry
 	Input1 	*widget.Entry
 	Input2 	*widget.Entry
 	Input3 	*widget.Entry
@@ -228,6 +231,7 @@ func (g *OdileGUI) ResetFields(){
 	g.FileList = []string{}
 	g.RefreshFileList(g.FileList)
 
+	g.Input0.SetText("")
 	g.Input1.SetText("")
 	g.Input2.SetText("")
 	g.Input3.SetText("")
@@ -309,6 +313,7 @@ func (g *OdileGUI) Init(){
 		}
 	})
 
+	g.Input0 = widget.NewEntry() // v9 now adds a pin number to secret
 	g.Input1 = widget.NewEntry()
 	g.Input2 = widget.NewEntry()
 	g.Input3 = widget.NewEntry()
@@ -326,6 +331,7 @@ func (g *OdileGUI) Init(){
 	g.RecvButton = widget.NewButton("Receive", func() {
 		log.Println("Receive button pressed")
 		secret := CombineWords(
+			g.Input0.Text,
 			g.Input1.Text,
 			g.Input2.Text,
 			g.Input3.Text,
@@ -352,6 +358,7 @@ func (g *OdileGUI) Init(){
 		g.SendButton,
 		g.SendPasswordLabel,
 		g.RecvButton,
+		g.Input0,
 		g.Input1,
 		g.Input2,
 		g.Input3,
